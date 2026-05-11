@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>IT Helpdesk</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --tp: #6264A7; --tp-dark: #4f4f8c; --tp-light: #e8e8f4;
+    --gray-50: #f9f9f9; --gray-100: #f3f3f3; --gray-200: #e0e0e0;
+    --gray-400: #9e9e9e; --gray-700: #424242; --gray-900: #1a1a1a;
+    --green: #13a40a; --orange: #f29423;
+    --text: #252525; --muted: #616161; --border: #e1e1e1;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08); --r: 6px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+  html, body { height: 100%; font-family: var(--font); background: #f5f5f5; color: var(--text); font-size: 14px; }
+
+  /* TOP BAR */
+  .topbar { background: var(--tp); color: #fff; height: 48px; display: flex; align-items: center; padding: 0 16px; gap: 10px; flex-shrink: 0; position: relative; z-index: 50; }
+  .topbar-team { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .topbar-sep { opacity: 0.5; margin: 0 4px; }
+
+  /* SERVICE DROPDOWN */
+  .service-dropdown { position: relative; }
+  .service-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 14px; font-weight: 600; font-family: var(--font);
+    padding: 5px 12px; border-radius: var(--r); cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: background 0.15s;
+  }
+  .service-btn:hover { background: rgba(255,255,255,0.22); }
+  .service-btn .arrow { font-size: 10px; opacity: 0.8; transition: transform 0.2s; }
+  .service-btn.open .arrow { transform: rotate(180deg); }
+  .service-menu {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: var(--r);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.14); min-width: 220px; z-index: 200; overflow: hidden;
+  }
+  .service-menu.open { display: block; }
+  .service-menu-item {
+    padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer;
+    border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; gap: 8px;
+    transition: background 0.12s;
+  }
+  .service-menu-item:last-child { border-bottom: none; }
+  .service-menu-item:hover { background: var(--tp-light); color: var(--tp); }
+  .service-menu-item.active { background: var(--tp-light); color: var(--tp); font-weight: 600; }
+  .topbar-actions { display: flex; gap: 14px; opacity: 0.8; font-size: 17px; margin-left: auto; }
+
+  /* TAB BAR */
+  .tabbar { background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; height: 44px; flex-shrink: 0; }
+  .tab { height: 44px; padding: 0 14px; font-size: 13px; color: var(--muted); display: flex; align-items: center; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s; white-space: nowrap; }
+  .tab:hover { color: var(--text); background: var(--gray-50); }
+  .tab.active { color: var(--tp); font-weight: 600; border-bottom: 2px solid var(--tp); }
+  .tab-right { margin-left: auto; display: flex; gap: 2px; }
+  .tab-right .tab { font-size: 12px; }
+
+  /* LAYOUT */
+  .layout { display: flex; height: calc(100vh - 92px); overflow: hidden; }
+
+  /* MAIN */
+  .main { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+  .tab-panel { display: none; flex-direction: column; gap: 18px; }
+  .tab-panel.active { display: flex; }
+
+  .page-title { font-size: 18px; font-weight: 600; color: var(--gray-900); }
+  .page-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  /* QUICK CARDS */
+  .quick-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .qcard { background: var(--tp); color: #fff; border-radius: var(--r); overflow: hidden; cursor: pointer; transition: filter 0.15s; }
+  .qcard:hover { filter: brightness(1.08); }
+  .qcard-header { padding: 10px 12px 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 7px; border-bottom: 1px solid rgba(255,255,255,0.18); }
+  .qcard-body { padding: 10px 12px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 7px; opacity: 0.92; }
+
+  /* STEPS */
+  .section-title { font-size: 15px; font-weight: 600; color: var(--gray-900); margin-bottom: 12px; }
+  .steps-box { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 16px 20px; box-shadow: var(--shadow); }
+  .step { display: flex; align-items: center; gap: 14px; padding: 10px 4px; border-bottom: 1px solid var(--gray-100); font-size: 13px; color: var(--gray-700); border-radius: 4px; transition: background 0.12s; }
+  .step:last-child { border-bottom: none; }
+  .step:hover { background: var(--gray-50); }
+  .step-num { width: 24px; height: 24px; background: var(--tp); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  /* COMMENTS */
+  .comments-box { background: #fff; border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+  .comments-header { background: var(--tp-light); padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--tp-dark); display: flex; align-items: center; gap: 7px; }
+  .comment { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--gray-100); gap: 10px; font-size: 12px; }
+  .comment:last-child { border-bottom: none; }
+  .comment-flag { color: var(--tp); font-size: 15px; flex-shrink: 0; }
+  .comment-text { flex: 1; color: var(--gray-700); }
+  .comment-meta { color: var(--gray-400); font-size: 11px; white-space: nowrap; }
+  .comment-author { font-weight: 600; color: var(--muted); }
+
+  /* FEEDBACK BTN */
+  .feedback-btn { display: flex; align-items: center; justify-content: center; gap: 7px; background: var(--tp); color: #fff; border: none; border-radius: var(--r); padding: 11px; width: 100%; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: filter 0.15s; }
+  .feedback-btn:hover { filter: brightness(1.1); }
+
+  /* SIDEBAR */
+  .sidebar { width: 240px; background: #fff; border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; padding: 16px; display: flex; flex-direction: column; gap: 18px; }
+  .sidebar-section-title { font-size: 13px; font-weight: 700; color: var(--gray-900); margin-bottom: 10px; }
+  .contact { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer; }
+  .contact:last-child { border-bottom: none; }
+  .contact-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--tp-light); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--tp); flex-shrink: 0; }
+  .contact-name { font-size: 12px; font-weight: 600; color: var(--gray-900); }
+  .contact-role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .contact-status { font-size: 11px; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); } .dot-orange { background: var(--orange); } .dot-gray { background: var(--gray-400); }
+  .feedback-item { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer; }
+  .feedback-item:last-child { border-bottom: none; }
+  .feedback-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--tp-light); font-size: 11px; font-weight: 700; color: var(--tp); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .feedback-text { font-size: 12px; color: var(--gray-700); line-height: 1.4; }
+  .feedback-author { font-size: 11px; color: var(--tp); font-weight: 600; margin-top: 2px; }
+  .feedback-time { font-size: 11px; color: var(--gray-400); }
+  .sidebar-more-btn { background: var(--tp); color: #fff; border: none; border-radius: var(--r); padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; font-family: var(--font); transition: filter 0.15s; }
+  .sidebar-more-btn:hover { filter: brightness(1.1); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 8px; width: 420px; max-width: 95vw; box-shadow: 0 8px 32px rgba(0,0,0,0.18); overflow: hidden; }
+  .modal-header { background: var(--tp); color: #fff; padding: 14px 18px; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .modal-close { cursor: pointer; font-size: 18px; background: none; border: none; color: #fff; opacity: 0.8; }
+  .modal-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .modal-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .modal-input, .modal-textarea { width: 100%; border: 1px solid var(--border); border-radius: var(--r); padding: 8px 10px; font-size: 13px; font-family: var(--font); color: var(--text); outline: none; }
+  .modal-input:focus, .modal-textarea:focus { border-color: var(--tp); }
+  .modal-textarea { resize: vertical; min-height: 80px; }
+  .modal-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-cancel { background: none; border: 1px solid var(--border); border-radius: var(--r); padding: 7px 16px; font-size: 13px; cursor: pointer; font-family: var(--font); color: var(--muted); }
+  .btn-submit { background: var(--tp); color: #fff; border: none; border-radius: var(--r); padding: 7px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span style="font-size:18px;">🏢</span>
+  <span class="topbar-team">IT Helpdesk</span>
+  <span class="topbar-sep">|</span>
+  <div class="service-dropdown">
+    <button class="service-btn" id="serviceBtn" onclick="toggleServiceMenu()">
+      🔑 <span id="serviceLabel">Password Reset Service</span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="service-menu" id="serviceMenu">
+      <div class="service-menu-item active" onclick="switchService('email')" data-svc="email">✉️ Email Support Service</div>
+      <div class="service-menu-item" onclick="switchService('hardware')" data-svc="hardware">🖥️ Hardware Support Service</div>
+      <div class="service-menu-item" onclick="switchService('network')" data-svc="network">🌐 Network Connectivity Service</div>
+      <div class="service-menu-item active" onclick="switchService('password')" data-svc="password">🔑 Password Reset Service</div>
+      <div class="service-menu-item" onclick="switchService('security')" data-svc="security">🔒 Security and Access Control</div>
+      <div class="service-menu-item" onclick="switchService('software')" data-svc="software">💾 Software & Application Support</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <span>🔍</span><span>📞</span><span>✉️</span>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tabbar">
+  <div class="tab active" id="tab-proc" onclick="switchTab('procedures')">Procedures</div>
+  <div class="tab" id="tab-esc" onclick="switchTab('escalation')">Escalation Path</div>
+  <div class="tab" id="tab-feed" onclick="switchTab('feedback')">Feedback</div>
+  <div class="tab">More ▾</div>
+  <div class="tab-right">
+    <div class="tab">Posts</div><div class="tab">Files</div><div class="tab">+ More ▾</div><div class="tab">Expand ↗</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <div class="main" id="mainContent">
+
+    <!-- PROCEDURES TAB -->
+    <div class="tab-panel active" id="panel-procedures">
+      <div>
+        <div class="page-title" id="svc-title">Password Reset Procedures</div>
+        <div class="page-sub" id="svc-sub">Steps to resolve password issues.</div>
+      </div>
+      <div class="quick-cards" id="svc-cards"></div>
+      <div class="steps-box">
+        <div class="section-title" id="steps-title">Reset Steps</div>
+        <div id="svc-steps"></div>
+      </div>
+      <div class="comments-box">
+        <div class="comments-header">
+          💬 Latest Comments from Agents
+        </div>
+        <div id="svc-comments"></div>
+      </div>
+      <button class="feedback-btn" onclick="openFeedback()">＋ Submit Feedback</button>
+    </div>
+
+    <!-- ESCALATION TAB -->
+    <div class="tab-panel" id="panel-escalation">
+      <div>
+        <div class="page-title" id="esc-title">Escalation Path</div>
+        <div class="page-sub" id="esc-sub">Follow this path when the issue cannot be resolved at your level.</div>
+      </div>
+      <div class="steps-box">
+        <div class="section-title">Escalation Flow</div>
+        <div id="esc-steps"></div>
+      </div>
+    </div>
+
+    <!-- FEEDBACK TAB -->
+    <div class="tab-panel" id="panel-feedback">
+      <div>
+        <div class="page-title" id="feed-title">Feedback</div>
+        <div class="page-sub" id="feed-sub">All agent feedback for this service.</div>
+      </div>
+      <div class="comments-box">
+        <div class="comments-header">💬 All Comments</div>
+        <div id="feed-comments"></div>
+      </div>
+      <button class="feedback-btn" onclick="openFeedback()">＋ Submit Feedback</button>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="sidebar-section-title">Escalation Contacts</div>
+      <div id="sidebar-contacts"></div>
+    </div>
+    <div>
+      <div class="sidebar-section-title">💬 Recent Feedback</div>
+      <div id="sidebar-feedback"></div>
+      <button class="sidebar-more-btn" style="margin-top:8px;">›</button>
+    </div>
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedbackModal" onclick="if(event.target===this)closeFeedback()">
+  <div class="modal">
+    <div class="modal-header">Submit Feedback <button class="modal-close" onclick="closeFeedback()">✕</button></div>
+    <div class="modal-body">
+      <div><div class="modal-label">Your Name</div><input class="modal-input" id="fbName" placeholder="e.g. John S." /></div>
+      <div><div class="modal-label">Feedback</div><textarea class="modal-textarea" id="fbText" placeholder="Describe your feedback…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeFeedback()">Cancel</button>
+      <button class="btn-submit" onclick="submitFeedback()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOC MODAL -->
+<div class="modal-overlay" id="docModal" onclick="if(event.target===this)closeDoc()">
+  <div class="modal">
+    <div class="modal-header" id="docTitle">Document <button class="modal-close" onclick="closeDoc()">✕</button></div>
+    <div class="modal-body" id="docBody" style="font-size:13px;color:#424242;line-height:1.6;"></div>
+    <div class="modal-footer"><button class="btn-submit" onclick="closeDoc()">Close</button></div>
+  </div>
+</div>
+
+<script>
+const SERVICES = {
+  email: {
+    label: '✉️ Email Support Service',
+    title: 'Email Support Procedures',
+    sub: 'Steps to resolve email access and configuration issues.',
+    stepsTitle: 'Resolution Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Email Setup Instructions', doc: 'email-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'email-faq' },
+      { header: '🔗 Related Links', body: '📄 Email Policy Doc', doc: 'email-policy' }
+    ],
+    steps: ['Verify user identity and account status', 'Check mailbox quota and filters', 'Re-configure email client settings', 'Test send/receive and confirm resolution'],
+    comments: [{ flag: '🚩', text: 'Outlook keeps disconnecting after update.', author: 'Sara K.', time: '1 day ago' }, { flag: '🚩', text: 'Need steps for mobile email setup.', author: 'David M.', time: '3 hours ago' }],
+    escalation: ['Level 1 — Helpdesk: Reset email password and check client config', 'Level 2 — Mail Server Admin: Escalate for server-side issues or quota', 'Level 3 — IT Manager: Escalate for data loss or security breaches'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'MA', name: 'Level 2: Mail Server Admin', status: 'orange', label: 'On Call' }, { initials: 'SL', name: 'Level 3: IT Manager', role: 'Contact: Sarah Lee', status: 'gray', label: 'Offline' }],
+    docs: {
+      'email-guide': { title: 'Email Setup Instructions', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Open Outlook or preferred email client</li><li>Go to <strong>File → Add Account</strong></li><li>Enter the user\'s company email address</li><li>Select Auto-Configure or enter IMAP/SMTP settings manually</li><li>Test send and receive to confirm</li><li>Log the ticket as resolved</li></ol>' },
+      'email-faq': { title: 'Email FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: User can\'t receive emails?</strong><br>A: Check mailbox quota and spam filters first.</div><div><strong>Q: Emails going to junk?</strong><br>A: Whitelist the sender domain in mail settings.</div><div><strong>Q: Mobile email not syncing?</strong><br>A: Re-add account using IMAP settings from the IT portal.</div></div>' },
+      'email-policy': { title: 'Email Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>Company email must only be used for business purposes</li><li>Mailbox quota: 50GB per user</li><li>Emails are retained for 7 years</li><li>Auto-forwarding to personal accounts is prohibited</li><li>Phishing emails must be reported to security@company.com</li></ul>' }
+    }
+  },
+  hardware: {
+    label: '🖥️ Hardware Support Service',
+    title: 'Hardware Support Procedures',
+    sub: 'Steps to diagnose and resolve hardware issues.',
+    stepsTitle: 'Diagnostic Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Hardware Triage Guide', doc: 'hw-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'hw-faq' },
+      { header: '🔗 Related Links', body: '📄 Asset Policy Doc', doc: 'hw-policy' }
+    ],
+    steps: ['Identify the hardware fault and affected device', 'Run basic diagnostics (power, connections, drivers)', 'Replace peripheral or escalate for repair', 'Update asset register and close ticket'],
+    comments: [{ flag: '🚩', text: 'Monitor flickering on docking station.', author: 'Tom B.', time: '5 hours ago' }, { flag: '🚩', text: 'Keyboard replacement stock is low.', author: 'Nina P.', time: '2 days ago' }],
+    escalation: ['Level 1 — Helpdesk: Basic diagnostics and peripheral swap', 'Level 2 — Hardware Technician: Component repair or warranty claim', 'Level 3 — IT Manager: Bulk failure or data recovery escalation'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'HW', name: 'Level 2: Hardware Technician', status: 'orange', label: 'On Call' }, { initials: 'SL', name: 'Level 3: IT Manager', role: 'Contact: Sarah Lee', status: 'gray', label: 'Offline' }],
+    docs: {
+      'hw-guide': { title: 'Hardware Triage Guide', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Confirm the device model and serial number</li><li>Check power supply and all cable connections</li><li>Run built-in diagnostics (e.g. Dell SupportAssist)</li><li>Swap peripheral if faulty</li><li>If laptop/desktop — log for Level 2 repair</li><li>Update asset register</li></ol>' },
+      'hw-faq': { title: 'Hardware FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: Monitor not displaying?</strong><br>A: Check cable, input source, and try a different port.</div><div><strong>Q: Laptop won\'t power on?</strong><br>A: Try a different charger; escalate to Level 2 if issue persists.</div><div><strong>Q: How do I request a hardware replacement?</strong><br>A: Submit a request via the IT portal with the asset tag.</div></div>' },
+      'hw-policy': { title: 'Hardware Asset Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>All hardware must be registered in the asset management system</li><li>Devices must not be modified without IT approval</li><li>Warranty claims must go through IT procurement</li><li>Devices older than 5 years qualify for refresh</li><li>Lost/stolen devices must be reported within 24 hours</li></ul>' }
+    }
+  },
+  network: {
+    label: '🌐 Network Connectivity Service',
+    title: 'Network Connectivity Procedures',
+    sub: 'Steps to resolve network and connectivity issues.',
+    stepsTitle: 'Troubleshooting Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Network Triage Guide', doc: 'net-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'net-faq' },
+      { header: '🔗 Related Links', body: '📄 Network Policy Doc', doc: 'net-policy' }
+    ],
+    steps: ['Confirm connectivity issue (wired/wireless/VPN)', 'Check physical connections and router/switch status', 'Run ping/traceroute diagnostics', 'Escalate to network team if infrastructure fault detected'],
+    comments: [{ flag: '🚩', text: 'VPN dropping intermittently in building C.', author: 'Lee R.', time: '6 hours ago' }, { flag: '🚩', text: 'Wi-Fi slow in the boardroom.', author: 'Priya S.', time: '1 day ago' }],
+    escalation: ['Level 1 — Helpdesk: Basic troubleshooting and device restart', 'Level 2 — Network Engineer: Switch/router config and VLAN issues', 'Level 3 — IT Manager: ISP escalation or major outage'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'NE', name: 'Level 2: Network Engineer', status: 'orange', label: 'On Call' }, { initials: 'SL', name: 'Level 3: IT Manager', role: 'Contact: Sarah Lee', status: 'gray', label: 'Offline' }],
+    docs: {
+      'net-guide': { title: 'Network Triage Guide', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Ask the user if the issue is wired, Wi-Fi, or VPN</li><li>Restart the device network adapter</li><li>Check if other users in the area are affected</li><li>Run <strong>ipconfig /release</strong> and <strong>ipconfig /renew</strong></li><li>If VPN — reinstall the VPN client</li><li>Escalate to Level 2 if building-wide</li></ol>' },
+      'net-faq': { title: 'Network FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: No internet but connected to Wi-Fi?</strong><br>A: Check DNS settings and try flushing DNS cache.</div><div><strong>Q: VPN won\'t connect?</strong><br>A: Re-install client and check credentials. Verify MFA is set up.</div><div><strong>Q: Slow network speeds?</strong><br>A: Run a speed test and log results for Level 2.</div></div>' },
+      'net-policy': { title: 'Network Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>Only IT-approved devices may connect to the corporate network</li><li>Personal hotspots must not be used on company devices</li><li>VPN is required for all remote access</li><li>Network changes require a change request approved by IT Manager</li><li>Wireless passwords rotate every 90 days</li></ul>' }
+    }
+  },
+  password: {
+    label: '🔑 Password Reset Service',
+    title: 'Password Reset Procedures',
+    sub: 'Steps to resolve password issues.',
+    stepsTitle: 'Reset Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Reset Password Instructions', doc: 'pw-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'pw-faq' },
+      { header: '🔗 Related Links', body: '📄 Password Policy Doc', doc: 'pw-policy' }
+    ],
+    steps: ['Verify User Identity', 'Access Reset Tool', 'Reset Password & Confirm'],
+    comments: [{ flag: '🚩', text: 'Reset tool is slow this week.', author: 'John S.', time: '2 days ago' }, { flag: '🚩', text: 'Add steps for mobile reset.', author: 'Alicia R.', time: '4 hours ago' }],
+    escalation: ['Level 1 — Helpdesk Technician: Attempt reset via standard tool', 'Level 2 — IT Support Specialist: Escalate if account locked or tool fails', 'Level 3 — IT Manager (Sarah Lee): Escalate for executive accounts or security incidents'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'IS', name: 'Level 2: IT Support Specialist', status: 'orange', label: 'On Call' }, { initials: 'SL', name: 'Level 3: IT Manager', role: 'Contact: Sarah Lee', status: 'gray', label: 'Offline' }],
+    docs: {
+      'pw-guide': { title: 'Reset Password Instructions', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Open the IT Self-Service Portal at <strong>portal.company.com/reset</strong></li><li>Enter the employee\'s username or email address</li><li>Select <strong>Reset Password</strong> and verify via employee ID</li><li>A temporary password will be emailed to the employee\'s secondary email</li><li>Instruct the employee to change the password on first login</li><li>Log the ticket and mark as resolved</li></ol>' },
+      'pw-faq': { title: 'Password FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: What if the reset tool is unavailable?</strong><br>A: Escalate to Level 2. Use the manual form in SharePoint.</div><div><strong>Q: Can employees self-reset?</strong><br>A: Yes, via the portal if they pre-registered a recovery email.</div><div><strong>Q: How long is a temp password valid?</strong><br>A: 24 hours.</div><div><strong>Q: Account locked after too many attempts?</strong><br>A: Unlock in Active Directory before resetting.</div></div>' },
+      'pw-policy': { title: 'Password Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>Minimum 12 characters</li><li>Must include uppercase, lowercase, number, and special character</li><li>Passwords expire every 90 days</li><li>Cannot reuse last 10 passwords</li><li>Account locks after 5 failed attempts</li><li>MFA required for all remote access</li></ul>' }
+    }
+  },
+  security: {
+    label: '🔒 Security and Access Control',
+    title: 'Security & Access Control Procedures',
+    sub: 'Steps to manage access permissions and security incidents.',
+    stepsTitle: 'Access Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Access Request Guide', doc: 'sec-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'sec-faq' },
+      { header: '🔗 Related Links', body: '📄 Security Policy Doc', doc: 'sec-policy' }
+    ],
+    steps: ['Verify identity and role of requestor', 'Check access request against role matrix', 'Provision or revoke access in Active Directory', 'Notify user and log audit trail'],
+    comments: [{ flag: '🚩', text: 'New starters need faster access provisioning.', author: 'Chris T.', time: '3 hours ago' }, { flag: '🚩', text: 'Leaver accounts not disabled promptly.', author: 'Anne B.', time: '1 day ago' }],
+    escalation: ['Level 1 — Helpdesk: Standard access provisioning and password unlock', 'Level 2 — Security Analyst: Suspicious activity or privilege escalation', 'Level 3 — IT Manager + CISO: Data breach or active threat'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'SA', name: 'Level 2: Security Analyst', status: 'orange', label: 'On Call' }, { initials: 'CI', name: 'Level 3: CISO', role: 'Contact: IT Manager', status: 'gray', label: 'Offline' }],
+    docs: {
+      'sec-guide': { title: 'Access Request Guide', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Receive access request via IT portal or manager email</li><li>Verify request against the role-based access matrix</li><li>Obtain manager approval for elevated privileges</li><li>Provision access in Active Directory and relevant systems</li><li>Email the user with confirmation and instructions</li><li>Log the change in the audit trail</li></ol>' },
+      'sec-faq': { title: 'Security & Access FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: How quickly should leaver accounts be disabled?</strong><br>A: Within 4 hours of HR notification.</div><div><strong>Q: Who approves elevated access?</strong><br>A: The user\'s line manager plus IT Security.</div><div><strong>Q: What to do if a security incident is suspected?</strong><br>A: Isolate the device and immediately escalate to Level 2.</div></div>' },
+      'sec-policy': { title: 'Security Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>Least-privilege access model enforced across all systems</li><li>Access reviews conducted quarterly</li><li>MFA mandatory for all users</li><li>Leaver accounts disabled within 4 hours</li><li>Security incidents must be reported within 1 hour</li><li>USB storage devices are prohibited without IT approval</li></ul>' }
+    }
+  },
+  software: {
+    label: '💾 Software & Application Support',
+    title: 'Software & Application Support Procedures',
+    sub: 'Steps to resolve software installation and application issues.',
+    stepsTitle: 'Support Steps',
+    cards: [
+      { header: '📋 Quick Guide', body: '📄 Software Install Guide', doc: 'sw-guide' },
+      { header: '❓ FAQ', body: '❓ Common Questions', doc: 'sw-faq' },
+      { header: '🔗 Related Links', body: '📄 Software Policy Doc', doc: 'sw-policy' }
+    ],
+    steps: ['Confirm the software name, version, and OS', 'Check if software is on the approved applications list', 'Install via the IT software portal or SCCM', 'Test installation and confirm with the user'],
+    comments: [{ flag: '🚩', text: 'Teams update breaking screen share.', author: 'Mark L.', time: '2 hours ago' }, { flag: '🚩', text: 'Adobe licence requests taking too long.', author: 'Fiona C.', time: '3 days ago' }],
+    escalation: ['Level 1 — Helpdesk: Standard installation and basic troubleshooting', 'Level 2 — Application Specialist: Compatibility or licensing issues', 'Level 3 — IT Manager: Vendor escalation or critical business app outage'],
+    contacts: [{ initials: 'HT', name: 'Level 1: Helpdesk Technician', status: 'green', label: 'Available' }, { initials: 'AS', name: 'Level 2: Application Specialist', status: 'orange', label: 'On Call' }, { initials: 'SL', name: 'Level 3: IT Manager', role: 'Contact: Sarah Lee', status: 'gray', label: 'Offline' }],
+    docs: {
+      'sw-guide': { title: 'Software Install Guide', body: '<ol style="padding-left:18px;display:flex;flex-direction:column;gap:10px;"><li>Check the approved software list on the IT portal</li><li>If approved, deploy via SCCM Software Center</li><li>If not listed, raise a software request with manager approval</li><li>Install and run through initial setup with the user</li><li>Check for licence requirements and register if needed</li><li>Log the ticket as resolved</li></ol>' },
+      'sw-faq': { title: 'Software Support FAQ', body: '<div style="display:flex;flex-direction:column;gap:12px;"><div><strong>Q: Can users install their own software?</strong><br>A: No. All software must be approved and installed by IT.</div><div><strong>Q: How do I request a new software licence?</strong><br>A: Submit via the IT portal with manager approval.</div><div><strong>Q: Application crashing repeatedly?</strong><br>A: Collect error logs and escalate to Level 2.</div></div>' },
+      'sw-policy': { title: 'Software Policy', body: '<ul style="padding-left:18px;display:flex;flex-direction:column;gap:8px;"><li>Only IT-approved software may be installed on company devices</li><li>All software must be licenced — no pirated software</li><li>Software requests require line manager approval</li><li>Unused software licences must be returned to IT within 30 days</li><li>Browser extensions require IT approval</li></ul>' }
+    }
+  }
+};
+
+let currentService = 'password';
+let currentTab = 'procedures';
+let allDocs = {};
+
+function renderService(key) {
+  const s = SERVICES[key];
+  currentService = key;
+  allDocs = s.docs;
+
+  // Update topbar label
+  document.getElementById('serviceLabel').textContent = s.label.replace(/^.{2}/, '').trim();
+  document.getElementById('serviceLabel').textContent = s.label;
+
+  // Procedures tab
+  document.getElementById('svc-title').textContent = s.title;
+  document.getElementById('svc-sub').textContent = s.sub;
+  document.getElementById('steps-title').textContent = s.stepsTitle;
+
+  // Cards
+  const cardsEl = document.getElementById('svc-cards');
+  cardsEl.innerHTML = s.cards.map(c => `
+    <div class="qcard" onclick="openDoc('${c.doc}')">
+      <div class="qcard-header">${c.header}</div>
+      <div class="qcard-body">${c.body}</div>
+    </div>`).join('');
+
+  // Steps
+  const stepsEl = document.getElementById('svc-steps');
+  stepsEl.innerHTML = s.steps.map((st, i) => `
+    <div class="step"><div class="step-num">${i+1}</div><span>${st}</span></div>`).join('');
+
+  // Comments
+  const commentsEl = document.getElementById('svc-comments');
+  commentsEl.innerHTML = s.comments.map(c => `
+    <div class="comment"><span class="comment-flag">${c.flag}</span><span class="comment-text">${c.text}</span><span class="comment-meta"><span class="comment-author">${c.author}</span> · ${c.time}</span></div>`).join('');
+
+  // Escalation tab
+  document.getElementById('esc-title').textContent = s.title.replace('Procedures','Escalation Path').replace('Steps','Escalation Path');
+  document.getElementById('esc-sub').textContent = 'Follow this path when the issue cannot be resolved at your level.';
+  const escSteps = document.getElementById('esc-steps');
+  escSteps.innerHTML = s.escalation.map((st, i) => `
+    <div class="step"><div class="step-num">${i+1}</div><span>${st}</span></div>`).join('');
+
+  // Feedback tab
+  document.getElementById('feed-title').textContent = 'Feedback';
+  document.getElementById('feed-sub').textContent = `All agent feedback for ${s.label.replace(/^.+? /,'')}.`;
+  const feedComments = document.getElementById('feed-comments');
+  feedComments.innerHTML = s.comments.map(c => `
+    <div class="comment"><span class="comment-flag">${c.flag}</span><span class="comment-text">${c.text}</span><span class="comment-meta"><span class="comment-author">${c.author}</span> · ${c.time}</span></div>`).join('');
+
+  // Sidebar contacts
+  const contactsEl = document.getElementById('sidebar-contacts');
+  contactsEl.innerHTML = s.contacts.map(c => `
+    <div class="contact">
+      <div class="contact-avatar">${c.initials}</div>
+      <div>
+        <div class="contact-name">${c.name}</div>
+        ${c.role ? `<div class="contact-role">${c.role}</div>` : ''}
+        <div class="contact-status"><span class="dot dot-${c.status}"></span><span style="color:${c.status==='green'?'#13a40a':c.status==='orange'?'#f29423':'#9e9e9e'};font-size:11px;">${c.label}</span></div>
+      </div>
+    </div>`).join('');
+
+  // Sidebar feedback
+  const sfEl = document.getElementById('sidebar-feedback');
+  sfEl.innerHTML = s.comments.map(c => `
+    <div class="feedback-item">
+      <div class="feedback-avatar">${c.author.split(' ').map(w=>w[0]).join('')}</div>
+      <div><div class="feedback-text">${c.text}</div><div class="feedback-author">${c.author} <span class="feedback-time">· ${c.time}</span></div></div>
+    </div>`).join('');
+
+  // Update menu active state
+  document.querySelectorAll('.service-menu-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.svc === key);
+  });
+}
+
+function toggleServiceMenu() {
+  const btn = document.getElementById('serviceBtn');
+  const menu = document.getElementById('serviceMenu');
+  btn.classList.toggle('open');
+  menu.classList.toggle('open');
+}
+
+function switchService(key) {
+  renderService(key);
+  toggleServiceMenu();
+  switchTab('procedures');
+}
+
+function switchTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('tab-proc').classList.toggle('active', id === 'procedures');
+  document.getElementById('tab-esc').classList.toggle('active', id === 'escalation');
+  document.getElementById('tab-feed').classList.toggle('active', id === 'feedback');
+}
+
+function openFeedback() { document.getElementById('feedbackModal').classList.add('open'); }
+function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
+
+function submitFeedback() {
+  const name = document.getElementById('fbName').value.trim() || 'Anonymous';
+  const text = document.getElementById('fbText').value.trim();
+  if (!text) return;
+  const html = `<div class="comment"><span class="comment-flag">🚩</span><span class="comment-text">${text}</span><span class="comment-meta"><span class="comment-author">${name}</span> · just now</span></div>`;
+  document.getElementById('svc-comments').insertAdjacentHTML('beforeend', html);
+  document.getElementById('feed-comments').insertAdjacentHTML('beforeend', html);
+  document.getElementById('fbName').value = '';
+  document.getElementById('fbText').value = '';
+  closeFeedback();
+}
+
+function openDoc(key) {
+  const d = allDocs[key];
+  if (!d) return;
+  document.getElementById('docTitle').innerHTML = d.title + ' <button class="modal-close" onclick="closeDoc()">✕</button>';
+  document.getElementById('docBody').innerHTML = d.body;
+  document.getElementById('docModal').classList.add('open');
+}
+function closeDoc() { document.getElementById('docModal').classList.remove('open'); }
+
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('.service-dropdown')) {
+    document.getElementById('serviceBtn').classList.remove('open');
+    document.getElementById('serviceMenu').classList.remove('open');
+  }
+});
+
+// Init
+renderService('password');
+</script>
+</body>
+</html>
